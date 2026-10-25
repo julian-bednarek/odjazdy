@@ -1,0 +1,4 @@
+node_modules/
+.wrangler/
+# real profiles: home coordinates
+config.json

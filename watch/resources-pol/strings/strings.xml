@@ -1,0 +1,19 @@
+<strings>
+    <string id="AppName">Pociąg</string>
+
+    <string id="Loading" scope="glance">Ładowanie…</string>
+    <string id="NotConfigured" scope="glance">Brak konfiguracji</string>
+    <string id="Unauthorized" scope="glance">Zły kod konfiguracji</string>
+    <string id="OpenApp" scope="glance">Otwórz aplikację</string>
+    <string id="NoTrains" scope="glance">Brak pociągów</string>
+    <string id="Cancelled" scope="glance">odwołany</string>
+    <string id="Now" scope="glance">teraz</string>
+    <string id="InMinutes" scope="glance">za $1$ min</string>
+    <string id="InHours" scope="glance">za $1$ h $2$ min</string>
+    <string id="Platform" scope="glance">peron $1$</string>
+
+    <string id="SetupCode">Kod konfiguracji</string>
+    <string id="NoLocation">brak pozycji</string>
+    <string id="Age">$1$ min temu</string>
+    <string id="Attribution">Dane: PKP PLK S.A.</string>
+</strings>

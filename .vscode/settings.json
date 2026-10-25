@@ -1,0 +1,7 @@
+{
+  "monkeyC.jungleFiles": "watch/monkey.jungle",
+  "monkeyC.typeCheckLevel": "Strict",
+  "workbench.editorAssociations": {
+    "manifest.xml": "default"
+  }
+}

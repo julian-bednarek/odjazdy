@@ -1,0 +1,10 @@
+# Connect IQ build output and developer key
+watch/bin/
+bin/
+*.der
+*.pem
+# Local secrets (worker URL, PLK key) and agent settings
+.env
+.dev.vars*
+!.dev.vars.example
+.claude/

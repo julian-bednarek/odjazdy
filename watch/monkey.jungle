@@ -1,0 +1,3 @@
+project.manifest = manifest.xml
+# bin/env holds resources generated from .env by ciq.sh
+base.resourcePath = $(base.resourcePath);bin/env
