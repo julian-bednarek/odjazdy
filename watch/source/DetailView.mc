@@ -74,11 +74,11 @@ class DetailView extends WatchUi.View {
         // Every departure can scroll to the top, where its details marquee.
         _maxFirst = rows.size() > 1 ? rows.size() - 1 : 0;
         scroll(0);
-        centered(dc, TITLE_Y, Graphics.FONT_SMALL, board.title, board.color);
+        var width = dc.getWidth() - 2 * MARGIN;
+        var animating = marquee(dc, MARGIN, TITLE_Y, Graphics.FONT_SMALL, board.title, board.color, width, Graphics.TEXT_JUSTIFY_CENTER);
         if (rows.size() == 0) {
             centered(dc, MESSAGE_Y, Graphics.FONT_SMALL, Text.get(Rez.Strings.NoTrains), Graphics.COLOR_WHITE);
         }
-        var animating = false;
         for (var i = 0; i < VISIBLE_ROWS; i++) {
             var index = _first + i;
             var y = FIRST_ROW_Y + i * ROW_HEIGHT;
@@ -104,17 +104,19 @@ class DetailView extends WatchUi.View {
         var details = Row.details(row);
         var detailsY = y + DETAILS_OFFSET_Y;
         if (focused) {
-            return marquee(dc, MARGIN, detailsY, Graphics.FONT_TINY, details, Graphics.COLOR_LT_GRAY, width);
+            return marquee(dc, MARGIN, detailsY, Graphics.FONT_TINY, details, Graphics.COLOR_LT_GRAY, width, Graphics.TEXT_JUSTIFY_LEFT);
         }
         Draw.text(dc, MARGIN, detailsY, Graphics.FONT_TINY, details, Graphics.COLOR_DK_GRAY, Graphics.TEXT_JUSTIFY_LEFT, width);
         return false;
     }
 
-    // Slides text wider than maxWidth to its end and jumps back, pausing at both ends.
-    private function marquee(dc as Dc, x as Number, y as Number, font as FontType, str as String, color as ColorType, maxWidth as Number) as Boolean {
+    // Text that fits the box from x to x + maxWidth is placed by justify; wider text slides
+    // to its end and jumps back, pausing at both ends.
+    private function marquee(dc as Dc, x as Number, y as Number, font as FontType, str as String, color as ColorType, maxWidth as Number, justify as Number) as Boolean {
         var overflow = dc.getTextWidthInPixels(str, font) - maxWidth;
         if (overflow <= 0) {
-            Draw.text(dc, x, y, font, str, color, Graphics.TEXT_JUSTIFY_LEFT, maxWidth);
+            var anchor = justify == Graphics.TEXT_JUSTIFY_CENTER ? x + maxWidth / 2 : x;
+            Draw.text(dc, anchor, y, font, str, color, justify, maxWidth);
             return false;
         }
         var period = 2 * MARQUEE_PAUSE_MS + overflow * MARQUEE_MS_PER_PX;
