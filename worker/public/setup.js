@@ -15,7 +15,7 @@ const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">Op
 const Messages = {
   unauthorized: "Link wygasł albo został już użyty. Wyślij nowy z zegarka: przytrzymaj UP.",
   password: "Złe hasło.",
-  closed: "Parowanie nowych zegarków jest wyłączone: ustaw SETUP_PASSWORD w Workerze.",
+  closed: "Parowanie nowych zegarków jest wyłączone: ustaw w Workerze SETUP_PASSWORD (min. 20 znaków).",
   upstream: "PLK nie odpowiada, lista stacji jest niedostępna. Spróbuj za chwilę.",
   bad_request: "Każdy profil potrzebuje nazwy, strefy i co najmniej jednej stacji skąd i dokąd.",
   network: "Brak połączenia z Workerem.",

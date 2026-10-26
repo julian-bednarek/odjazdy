@@ -20,7 +20,7 @@ async function signedPair(secret = SECRET) {
   return pair({ timestamp }, { "X-Device": DEVICE, "X-Signature": await signParts([timestamp, "pair"], secret) });
 }
 
-const open = (code: string) => fetchWorker(new Request(`${BASE}/open?c=${code}`), vars);
+const open = (code: string, headers: Record<string, string> = {}) => fetchWorker(new Request(`${BASE}/open?c=${code}`, { headers }), vars);
 const cookieOf = (res: Response) => res.headers.get("Set-Cookie")?.split(";")[0];
 
 async function login(pairing: Promise<{ body: Record<string, string> }> = pair({ secret: SECRET })) {
@@ -65,6 +65,12 @@ describe("pairing a new watch", () => {
     expect(again.headers.get("Set-Cookie")).toBeNull();
   });
 
+  it.each(["cross-site", "same-site"])("refuses a link followed from a %s page", async (site) => {
+    const { code } = (await pair({ secret: SECRET })).body;
+    expect((await open(code, { "Sec-Fetch-Site": site })).headers.get("Set-Cookie")).toBeNull();
+    expect((await open(code, { "Sec-Fetch-Site": "none" })).headers.get("Set-Cookie")).toMatch(/^__Host-session=/);
+  });
+
   it("ends the session after five wrong passwords", async () => {
     const cookie = await login();
     for (let i = 0; i < 5; i++) await api("PUT", "/api/config", cookie, { profiles: [dom], password: "guess" });
@@ -72,9 +78,9 @@ describe("pairing a new watch", () => {
     expect(storedConfig()).toBeNull();
   });
 
-  it("is closed while SETUP_PASSWORD is unset", async () => {
+  it.each([undefined, "under twenty chars"])("is closed while SETUP_PASSWORD is %j", async (password) => {
     const cookie = await login();
-    const res = await api("PUT", "/api/config", cookie, { profiles: [dom], password: "" }, { PLK_API_KEY: "key" });
+    const res = await api("PUT", "/api/config", cookie, { profiles: [dom], password }, { PLK_API_KEY: "key", SETUP_PASSWORD: password });
     expect(res).toMatchObject({ status: 403, body: { error: "closed" } });
   });
 
@@ -118,6 +124,12 @@ describe("the wizard API", () => {
   it("needs a session", async () => {
     expect((await api("GET", "/api/config")).status).toBe(401);
     expect((await api("GET", "/api/stations", "__Host-session=" + "0".repeat(64))).status).toBe(401);
+  });
+
+  it("keeps responses out of caches and content sniffing", async () => {
+    const { headers } = await api("GET", "/api/config", await login());
+    expect(headers.get("Cache-Control")).toBe("no-store");
+    expect(headers.get("X-Content-Type-Options")).toBe("nosniff");
   });
 
   it("serves PLK's station list from cache", async () => {

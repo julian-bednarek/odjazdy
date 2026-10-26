@@ -14,7 +14,7 @@ zegarek ──(Garmin Connect, makeWebRequest)──▶ Cloudflare Worker ──
 
 Języki zegarka: angielski (bazowy) i polski – wybierane według ustawień zegarka, teksty w `watch/resources*/strings/strings.xml`.
 
-Kod: licencja MIT ([LICENSE](LICENSE)). Dane: PKP Polskie Linie Kolejowe S.A., na warunkach PLK Open Data.
+Kod: licencja MIT ([LICENSE](LICENSE)). Wyjątek: Leaflet 1.9.4 w `worker/public/vendor/leaflet/` (BSD-2-Clause, [LICENSE](worker/public/vendor/leaflet/LICENSE)), trzymany lokalnie, żeby wizard nie ładował skryptów z CDN-u. Dane: PKP Polskie Linie Kolejowe S.A., na warunkach PLK Open Data.
 
 ## Setup
 
@@ -29,7 +29,7 @@ Kod: licencja MIT ([LICENSE](LICENSE)). Dane: PKP Polskie Linie Kolejowe S.A., n
    npx wrangler secret put PLK_API_KEY      # gdy przyjdzie klucz
    npx wrangler secret put SETUP_PASSWORD   # hasło do parowania nowych zegarków
    ```
-   `SETUP_PASSWORD` wygeneruj w menedżerze haseł (20+ losowych znaków). Bez niego nie da się sparować nowego zegarka. Lokalnie (`wrangler dev`) oba sekrety idą do `worker/.dev.vars` (wzór: `.dev.vars.example`).
+   `SETUP_PASSWORD` wygeneruj w menedżerze haseł (20+ losowych znaków). Bez niego albo z krótszym Worker nie sparuje nowego zegarka. Lokalnie (`wrangler dev`) oba sekrety idą do `worker/.dev.vars` (wzór: `.dev.vars.example`).
    Deploy dopisuje id KV do `wrangler.jsonc`. Można je zostawić albo odrzucić (`git checkout wrangler.jsonc`), bo kolejne deploye znajdą KV po bindingu.
 3. **Zegarek:** SDK i symulator na Windowsie (SDK Manager + urządzenie fr165), build z WSL Windowsową Javą:
    ```sh
@@ -69,7 +69,7 @@ Telefon:
 - `GET /api/config` zwraca `{"registered","profiles"}`. `PUT /api/config` przyjmuje `{"profiles","password"?}`, a hasło jest wymagane tylko dla nowego zegarka. `DELETE /api/config` odłącza zegarek.
 - `GET /api/stations` zwraca słownik stacji PLK `[[id, nazwa], ...]`, trzymany w cache na dobę.
 
-Wszystkie `/api/*` wymagają cookie sesji. Błędy: `unauthorized` (brak sesji), `password` (złe hasło; po 5 próbach sesja wygasa), `closed` (brak `SETUP_PASSWORD`), `bad_request` (zła lista profili).
+Wszystkie `/api/*` wymagają cookie sesji. Błędy: `unauthorized` (brak sesji), `password` (złe hasło; po 5 próbach sesja wygasa), `closed` (brak `SETUP_PASSWORD` albo krótsze niż 20 znaków), `bad_request` (zła lista profili).
 
 ## Bezpieczeństwo
 
@@ -85,8 +85,8 @@ Wszystkie `/api/*` wymagają cookie sesji. Błędy: `unauthorized` (brak sesji),
   - id KV.
 
   Bezpieczeństwo opiera się na sekrecie zegarka i haśle, nie na tajności URL-a.
-- **Link z zegarka** działa raz i najwyżej 10 min, więc z historii przeglądarki nic się nie odzyska. Token sesji siedzi w cookie `HttpOnly`, poza zasięgiem JS-a i URL-a.
-- **Hasło** chroni tylko przed parowaniem obcych zegarków, które zużywałyby Twój limit PLK. Twoich profili nie odsłania. Zmiana: ponowne `npx wrangler secret put SETUP_PASSWORD`.
+- **Link z zegarka** działa raz i najwyżej 10 min, więc z historii przeglądarki nic się nie odzyska. Worker odrzuca go, gdy przeglądarka zgłasza przejście z innej strony (`Sec-Fetch-Site: cross-site`), więc nikt nie wciśnie Ci linku do swojego parowania. Linki z komunikatorów przychodzą jak z zegarka, więc otwieraj tylko powiadomienie z Garmin Connect. Token sesji siedzi w cookie `HttpOnly`, poza zasięgiem JS-a i URL-a.
+- **Hasło** chroni tylko przed parowaniem obcych zegarków, które zużywałyby Twój limit PLK. Twoich profili nie odsłania. Limit 5 prób dotyczy jednej sesji, a nową sesję może otworzyć każdy, więc przed zgadywaniem chroni długość hasła. Zmiana: ponowne `npx wrangler secret put SETUP_PASSWORD`.
 - **Unieważnienie zegarka:** w wizardzie „Odłącz zegarek” (albo `npx wrangler kv key list --binding TS_KV --remote --prefix cfg:`, potem `kv key delete`), a potem reinstalacja apki, która tworzy nowy sekret.
 - KV trzyma sekrety i współrzędne stref jawnym tekstem, więc włącz 2FA na koncie Cloudflare.
 - Publiczny URL można zalać żądaniami. Wyczerpie to darmowe dzienne limity (Workers, KV, PLK) i zegarek przestanie działać do resetu.

@@ -1,6 +1,8 @@
 import type { SignedFields } from "./types";
 
 const MAX_CLOCK_SKEW_S = 300;
+// Number() alone also takes "123\n\n", which would let a departures signature pass for /v1/pair.
+const TIMESTAMP = /^\d{1,10}$/;
 
 const encoder = new TextEncoder();
 const fromHex = (hex: string) => Uint8Array.from(hex.match(/../g) ?? [], (byte) => parseInt(byte, 16));
@@ -19,8 +21,8 @@ export function canonical({ timestamp, lat, lon, profile }: SignedFields): strin
 
 // parts[0] is the timestamp the watch signed.
 export async function verify(secretHex: string, parts: string[], signatureHex: string, now: number): Promise<boolean> {
-  const sent = Number(parts[0]);
-  if (!Number.isSafeInteger(sent) || Math.abs(now - sent) > MAX_CLOCK_SKEW_S) return false;
+  const [timestamp] = parts;
+  if (!TIMESTAMP.test(timestamp) || Math.abs(now - Number(timestamp)) > MAX_CLOCK_SKEW_S) return false;
   const key = await crypto.subtle.importKey("raw", fromHex(secretHex), { name: "HMAC", hash: "SHA-256" }, false, ["verify"]);
   return crypto.subtle.verify("HMAC", key, fromHex(signatureHex), encoder.encode(parts.join("\n")));
 }

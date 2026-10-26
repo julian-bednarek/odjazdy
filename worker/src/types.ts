@@ -1,7 +1,7 @@
 export interface Env {
   TS_KV: KVNamespace;
   PLK_API_KEY?: string;
-  // Required to pair a new watch; without it pairing is closed.
+  // Required to pair a new watch; unset or under 20 characters, pairing is closed.
   SETUP_PASSWORD?: string;
 }
 

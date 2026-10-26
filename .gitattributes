@@ -1,2 +1,4 @@
 * text=auto eol=lf
 *.png binary
+# Vendored files stay byte-identical, or their SRI hashes break.
+worker/public/vendor/** -text

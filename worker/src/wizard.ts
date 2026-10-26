@@ -8,9 +8,12 @@ import type { DeviceConfig, Env, Pairing, Session } from "./types";
 const SESSION_TTL_S = 30 * 60;
 const SESSION_TOKEN_BYTES = 32;
 const MAX_PASSWORD_TRIES = 5;
+const MIN_PASSWORD_LENGTH = 20;
 const PAIRING_CODE = /^[0-9a-f]{32}$/;
 const SESSION_COOKIE = /(?:^|;\s*)__Host-session=([0-9a-f]{64})(?:;|$)/;
 const SETUP_PAGE = "/setup";
+// A link planted on a web page would log the phone into a stranger's pairing; the watch's own link arrives as "none".
+const FOREIGN_SITES = new Set(["cross-site", "same-site"]);
 
 type Authed = { token: string; session: Session };
 type AuthedHandler = (req: Request, env: Env, auth: Authed) => Promise<Response>;
@@ -31,7 +34,7 @@ function redirectToSetup(cookie?: string): Response {
 // address bar, the history and the page's scripts never hold a usable credential.
 export async function handleOpen(req: Request, env: Env): Promise<Response> {
   const code = new URL(req.url).searchParams.get("c") ?? "";
-  if (!PAIRING_CODE.test(code)) return redirectToSetup();
+  if (!PAIRING_CODE.test(code) || FOREIGN_SITES.has(req.headers.get("Sec-Fetch-Site") ?? "")) return redirectToSetup();
   const pairing = await env.TS_KV.get<Pairing>(Keys.pairing(code), "json");
   if (!pairing) return redirectToSetup();
 
@@ -49,9 +52,11 @@ function authed(handler: AuthedHandler) {
 }
 
 // Only a watch the worker doesn't know yet needs the owner's password; wrong guesses use up the session.
+// Anyone can open new sessions, so the password's length, not the try limit, is what stops guessing.
 async function passwordRejection(env: Env, { token, session }: Authed, password: unknown): Promise<Response | null> {
-  if (!env.SETUP_PASSWORD) return json({ error: Errors.closed }, 403);
-  if (typeof password === "string" && (await samePassword(password, env.SETUP_PASSWORD))) return null;
+  const expected = env.SETUP_PASSWORD ?? "";
+  if (expected.length < MIN_PASSWORD_LENGTH) return json({ error: Errors.closed }, 403);
+  if (typeof password === "string" && (await samePassword(password, expected))) return null;
   const passwordTries = session.passwordTries + 1;
   await (passwordTries < MAX_PASSWORD_TRIES
     ? putSession(env, token, { ...session, passwordTries })

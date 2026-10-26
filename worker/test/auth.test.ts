@@ -31,8 +31,8 @@ describe("verify", () => {
     expect(await verify(SECRET, canonical(fields), signature, NOW - 301)).toBe(false);
   });
 
-  it("rejects a non-numeric timestamp even when signed", async () => {
-    const odd = { ...fields, timestamp: "x" };
+  it.each(["x", `${NOW}\n\n`, ` ${NOW}`, `${NOW}.0`, "0x6B49D200"])("rejects the timestamp %j even when signed", async (timestamp) => {
+    const odd = { ...fields, timestamp };
     expect(await verify(SECRET, canonical(odd), await sign(odd), NOW)).toBe(false);
   });
 });
