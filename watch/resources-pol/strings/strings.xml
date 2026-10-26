@@ -9,11 +9,8 @@
     <string id="Cancelled" scope="glance">odwołany</string>
     <string id="Now" scope="glance">teraz</string>
     <string id="InMinutes" scope="glance">za $1$ min</string>
-    <string id="InHours" scope="glance">za $1$ h $2$ min</string>
     <string id="Platform" scope="glance">peron $1$</string>
 
     <string id="SetupCode">Kod konfiguracji</string>
-    <string id="NoLocation">brak pozycji</string>
-    <string id="Age">$1$ min temu</string>
     <string id="Attribution">Dane: PKP PLK S.A.</string>
 </strings>

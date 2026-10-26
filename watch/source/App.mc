@@ -15,7 +15,8 @@ class TrainApp extends Application.AppBase {
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         Store.ensureSecret();
         scheduleBackground();
-        return [new DetailView(), new DetailDelegate()];
+        var view = new DetailView();
+        return [view, new DetailDelegate(view)];
     }
 
     (:glance :typecheck(disableBackgroundCheck))

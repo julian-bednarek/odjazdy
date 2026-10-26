@@ -1,30 +1,37 @@
 import Toybox.Graphics;
 import Toybox.Lang;
-import Toybox.Time;
+import Toybox.System;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
 // Laid out for the 390×390 screen of the Forerunner 165.
 class DetailView extends WatchUi.View {
     private const MARGIN = 60;
-    private const TITLE_Y = 62;
-    private const DIAGNOSTICS_Y = 98;
-    private const MESSAGE_Y = 180;
+    private const TITLE_Y = 68;
+    private const MESSAGE_Y = 195;
     private const ERROR_Y = 140;
     private const SETUP_LABEL_Y = 190;
     private const SETUP_CODE_Y = 228;
     private const SETUP_LINE_HEIGHT = 36;
     private const SETUP_CODE_LINES = 2;
-    private const FIRST_ROW_Y = 135;
-    private const ROW_HEIGHT = 56;
-    private const DETAILS_OFFSET_Y = 27;
+    private const FIRST_ROW_Y = 122;
+    private const ROW_HEIGHT = 80;
+    private const DETAILS_OFFSET_Y = 34;
     private const DELAY_GAP = 8;
     private const ATTRIBUTION_Y = 362;
-    private const MAX_ROWS = 4;
+    private const VISIBLE_ROWS = 3;
+    private const SCROLLBAR_INSET = 8;
+    private const SCROLLBAR_WIDTH = 4;
+    private const SCROLLBAR_HALF_ARC = 30;
     private const REDRAW_MS = 30000;
-    private const COORDINATE_FORMAT = "%.3f";
+    private const MARQUEE_TICK_MS = 50;
+    private const MARQUEE_MS_PER_PX = 25;
+    private const MARQUEE_PAUSE_MS = 1500;
 
     private var _timer as Timer.Timer = new Timer.Timer();
+    private var _tickMs as Number = 0;
+    private var _first as Number = 0;
+    private var _maxFirst as Number = 0;
 
     function initialize() {
         View.initialize();
@@ -32,15 +39,25 @@ class DetailView extends WatchUi.View {
 
     function onShow() as Void {
         Api.refresh(false);
-        _timer.start(method(:onTick), REDRAW_MS, true);
+        tickEvery(REDRAW_MS);
     }
 
     function onHide() as Void {
         _timer.stop();
+        _tickMs = 0;
     }
 
     function onTick() as Void {
         WatchUi.requestUpdate();
+    }
+
+    function scroll(step as Number) as Void {
+        var first = _first + step;
+        _first = first < 0 ? 0 : (first > _maxFirst ? _maxFirst : first);
+    }
+
+    function resetScroll() as Void {
+        _first = 0;
     }
 
     function onUpdate(dc as Dc) as Void {
@@ -51,27 +68,76 @@ class DetailView extends WatchUi.View {
         if (error != null) {
             centered(dc, ERROR_Y, Graphics.FONT_SMALL, error, Graphics.COLOR_WHITE);
             drawSetupCode(dc);
+            tickEvery(REDRAW_MS);
             return;
         }
+        var rows = board.rows;
+        _maxFirst = rows.size() > VISIBLE_ROWS ? rows.size() - VISIBLE_ROWS : 0;
+        scroll(0);
         centered(dc, TITLE_Y, Graphics.FONT_SMALL, board.title, board.color);
-        centered(dc, DIAGNOSTICS_Y, Graphics.FONT_XTINY, diagnostics(), Graphics.COLOR_DK_GRAY);
-        if (board.rows.size() == 0) {
+        if (rows.size() == 0) {
             centered(dc, MESSAGE_Y, Graphics.FONT_SMALL, Text.get(Rez.Strings.NoTrains), Graphics.COLOR_WHITE);
         }
-        for (var i = 0; i < board.rows.size() && i < MAX_ROWS; i++) {
-            drawRow(dc, board.rows[i], FIRST_ROW_Y + i * ROW_HEIGHT);
+        var animating = false;
+        for (var i = 0; i < VISIBLE_ROWS && _first + i < rows.size(); i++) {
+            animating = drawRow(dc, rows[_first + i], FIRST_ROW_Y + i * ROW_HEIGHT, i == 0) || animating;
         }
+        drawScrollbar(dc, rows.size());
         centered(dc, ATTRIBUTION_Y, Graphics.FONT_XTINY, Text.get(Rez.Strings.Attribution), Graphics.COLOR_DK_GRAY);
+        tickEvery(animating ? MARQUEE_TICK_MS : REDRAW_MS);
     }
 
-    private function drawRow(dc as Dc, row as Array, y as Number) as Void {
+    // Returns whether the row is mid-animation and needs fast redraws.
+    private function drawRow(dc as Dc, row as Array, y as Number, focused as Boolean) as Boolean {
         var width = dc.getWidth() - 2 * MARGIN;
         var right = dc.getWidth() - MARGIN;
-        var color = Row.cancelled(row) ? Graphics.COLOR_RED : Graphics.COLOR_WHITE;
+        var color = Row.cancelled(row) ? Graphics.COLOR_RED : (focused ? Graphics.COLOR_WHITE : Graphics.COLOR_LT_GRAY);
         var x = Draw.text(dc, MARGIN, y, Graphics.FONT_MEDIUM, Row.clock(row), color, Graphics.TEXT_JUSTIFY_LEFT, width);
-        Draw.text(dc, x + DELAY_GAP, y, Graphics.FONT_TINY, Row.delay(row), Graphics.COLOR_RED, Graphics.TEXT_JUSTIFY_LEFT, right - x);
-        Draw.text(dc, right, y, Graphics.FONT_TINY, Row.status(row), color, Graphics.TEXT_JUSTIFY_RIGHT, width);
-        Draw.text(dc, MARGIN, y + DETAILS_OFFSET_Y, Graphics.FONT_XTINY, Row.details(row), Graphics.COLOR_LT_GRAY, Graphics.TEXT_JUSTIFY_LEFT, width);
+        x = Draw.text(dc, x + DELAY_GAP, y, Graphics.FONT_TINY, Row.delay(row), Graphics.COLOR_RED, Graphics.TEXT_JUSTIFY_LEFT, right - x - DELAY_GAP);
+        Draw.text(dc, right, y, Graphics.FONT_TINY, Row.status(row), color, Graphics.TEXT_JUSTIFY_RIGHT, right - x - DELAY_GAP);
+        var details = Row.details(row);
+        var detailsY = y + DETAILS_OFFSET_Y;
+        if (focused) {
+            return marquee(dc, MARGIN, detailsY, Graphics.FONT_TINY, details, Graphics.COLOR_LT_GRAY, width);
+        }
+        Draw.text(dc, MARGIN, detailsY, Graphics.FONT_TINY, details, Graphics.COLOR_DK_GRAY, Graphics.TEXT_JUSTIFY_LEFT, width);
+        return false;
+    }
+
+    // Slides text wider than maxWidth to its end and jumps back, pausing at both ends.
+    private function marquee(dc as Dc, x as Number, y as Number, font as FontType, str as String, color as ColorType, maxWidth as Number) as Boolean {
+        var overflow = dc.getTextWidthInPixels(str, font) - maxWidth;
+        if (overflow <= 0) {
+            Draw.text(dc, x, y, font, str, color, Graphics.TEXT_JUSTIFY_LEFT, maxWidth);
+            return false;
+        }
+        var period = 2 * MARQUEE_PAUSE_MS + overflow * MARQUEE_MS_PER_PX;
+        var offset = (System.getTimer() % period - MARQUEE_PAUSE_MS) / MARQUEE_MS_PER_PX;
+        offset = offset < 0 ? 0 : (offset > overflow ? overflow : offset);
+        var height = dc.getFontHeight(font);
+        dc.setClip(x, y - height / 2, maxWidth, height);
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x - offset, y, font, str, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.clearClip();
+        return true;
+    }
+
+    // An arc along the right edge, like the watch's own lists.
+    private function drawScrollbar(dc as Dc, total as Number) as Void {
+        if (total <= VISIBLE_ROWS) {
+            return;
+        }
+        var cx = dc.getWidth() / 2;
+        var cy = dc.getHeight() / 2;
+        var radius = cx - SCROLLBAR_INSET;
+        var span = 2 * SCROLLBAR_HALF_ARC;
+        var start = SCROLLBAR_HALF_ARC - span * _first / total;
+        dc.setPenWidth(SCROLLBAR_WIDTH);
+        dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, SCROLLBAR_HALF_ARC, -SCROLLBAR_HALF_ARC);
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, start, start - span * VISIBLE_ROWS / total);
+        dc.setPenWidth(1);
     }
 
     // Shown until the worker accepts this watch; registered with `npm run register`.
@@ -89,33 +155,35 @@ class DetailView extends WatchUi.View {
         }
     }
 
-    // Location source and data age, to judge how usable the weather-feed position is.
-    private function diagnostics() as String {
-        var location = Loc.current();
-        var age = Lang.format(Text.get(Rez.Strings.Age), [(Time.now().value() - Store.fetchedAt()) / 60]);
-        if (location == null) {
-            return Text.get(Rez.Strings.NoLocation) + Text.SEPARATOR + age;
-        }
-        var position = location[2] + " " + location[0].format(COORDINATE_FORMAT) + ", " + location[1].format(COORDINATE_FORMAT);
-        return position + Text.SEPARATOR + age;
-    }
-
     private function centered(dc as Dc, y as Number, font as FontType, text as String, color as ColorType) as Void {
         Draw.text(dc, dc.getWidth() / 2, y, font, text, color, Graphics.TEXT_JUSTIFY_CENTER, dc.getWidth() - 2 * MARGIN);
     }
+
+    // Restarting the timer only on change keeps its phase steady between redraws.
+    private function tickEvery(ms as Number) as Void {
+        if (ms != _tickMs) {
+            _timer.stop();
+            _timer.start(method(:onTick), ms, true);
+            _tickMs = ms;
+        }
+    }
 }
 
+// UP/DOWN scroll the departures; a left swipe switches profile, since a right swipe from the edge is Back.
 class DetailDelegate extends WatchUi.BehaviorDelegate {
-    function initialize() {
+    private var _view as DetailView;
+
+    function initialize(view as DetailView) {
         BehaviorDelegate.initialize();
+        _view = view;
     }
 
     function onNextPage() as Boolean {
-        return switchProfile(1);
+        return scroll(1);
     }
 
     function onPreviousPage() as Boolean {
-        return switchProfile(-1);
+        return scroll(-1);
     }
 
     function onSelect() as Boolean {
@@ -123,14 +191,24 @@ class DetailDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    private function switchProfile(step as Number) as Boolean {
+    function onSwipe(swipeEvent as WatchUi.SwipeEvent) as Boolean {
+        return swipeEvent.getDirection() == WatchUi.SWIPE_LEFT && nextProfile();
+    }
+
+    private function scroll(step as Number) as Boolean {
+        _view.scroll(step);
+        WatchUi.requestUpdate();
+        return true;
+    }
+
+    private function nextProfile() as Boolean {
         var resp = Store.response();
         if (resp == null || resp[Api.PROFILES] == null) {
             return false;
         }
         var ids = resp[Api.PROFILES] as Array<String>;
-        var next = (ids.indexOf(resp[Api.PROFILE]) + step + ids.size()) % ids.size();
-        Store.setManualProfile(ids[next]);
+        Store.setManualProfile(ids[(ids.indexOf(resp[Api.PROFILE]) + 1) % ids.size()]);
+        _view.resetScroll();
         Api.refresh(true);
         return true;
     }

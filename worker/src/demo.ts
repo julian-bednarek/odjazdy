@@ -9,7 +9,7 @@ const CANCELLED_EVERY = 7;
 const PLATFORMS = 4;
 const FIRST_TRAIN_NUMBER = 19000;
 const TRAIN_NUMBERS = 1000;
-const COUNT = 5;
+const COUNT = 6;
 
 // Fake departures served until PLK_API_KEY is set.
 export function demoRows(profile: Profile, now: number): Row[] {

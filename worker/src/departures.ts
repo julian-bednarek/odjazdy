@@ -3,7 +3,7 @@ import type { Candidate, PlkOperations, PlkRoute, PlkSchedules, Realtime, Row, T
 
 const STATUS_CANCELLED = "X";
 const DEPARTED_GRACE_S = 60;
-const MAX_ROWS = 5;
+const MAX_ROWS = 6;
 
 const rtKey = (t: TrainRef, date: string, station: number) =>
   `${t.scheduleId}:${t.trainOrderId ?? t.orderId}|${date}|${station}`;

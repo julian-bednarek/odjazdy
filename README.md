@@ -53,7 +53,7 @@ Kod: licencja MIT ([LICENSE](LICENSE)). Dane: PKP Polskie Linie Kolejowe S.A., n
 Sekret zna tylko zegarek i KV; podpis obejmuje lokalizację i profil, a zapytania starsze niż 5 min są odrzucane. Odpowiedź:
 
 ```json
-{"time":1761400000,"profile":"dom","name":"Dom→Centralna","matched":true,"stale":false,
+{"time":1761400000,"profile":"dom","name":"Dom - Centralna","matched":true,"stale":false,
  "profiles":["dom","waw"],
  "departures":[[1761400420,5,"KM 1234","Warszawa Centralna","3",false]]}
 ```

@@ -44,6 +44,8 @@ class Board {
 module Row {
     enum { TIME, DELAY, TRAIN, STATION, PLATFORM, CANCELLED }
 
+    const COUNTDOWN_MAX_MIN = 60;
+
     function clock(row as Array) as String {
         var t = Gregorian.info(new Time.Moment(row[TIME] as Number), Time.FORMAT_SHORT);
         return t.hour.format("%02d") + ":" + t.min.format("%02d");
@@ -57,10 +59,8 @@ module Row {
         if (mins <= 0) {
             return Text.get(Rez.Strings.Now);
         }
-        if (mins < 60) {
-            return Lang.format(Text.get(Rez.Strings.InMinutes), [mins]);
-        }
-        return Lang.format(Text.get(Rez.Strings.InHours), [mins / 60, mins % 60]);
+        // Beyond an hour the departure time says enough.
+        return mins < COUNTDOWN_MAX_MIN ? Lang.format(Text.get(Rez.Strings.InMinutes), [mins]) : "";
     }
 
     function delay(row as Array) as String {

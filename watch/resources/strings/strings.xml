@@ -9,11 +9,8 @@
     <string id="Cancelled" scope="glance">cancelled</string>
     <string id="Now" scope="glance">now</string>
     <string id="InMinutes" scope="glance">in $1$ min</string>
-    <string id="InHours" scope="glance">in $1$ h $2$ min</string>
     <string id="Platform" scope="glance">platform $1$</string>
 
     <string id="SetupCode">Setup code</string>
-    <string id="NoLocation">no location</string>
-    <string id="Age">$1$ min ago</string>
     <string id="Attribution">Data: PKP PLK S.A.</string>
 </strings>

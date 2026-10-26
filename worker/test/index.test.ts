@@ -6,7 +6,7 @@ import { DEVICE, SECRET, sign } from "./signing";
 const URL = "https://worker.test/v1/departures";
 const config: DeviceConfig = {
   secret: SECRET,
-  profiles: [{ id: "dom", name: "Dom→Centralna", lat: 52.2395, lon: 21.0458, r: 1500, from: [1], to: [2] }],
+  profiles: [{ id: "dom", name: "Dom - Centralna", lat: 52.2395, lon: 21.0458, r: 1500, from: [1], to: [2] }],
 };
 
 const ctx = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;

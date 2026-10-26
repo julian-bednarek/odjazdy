@@ -134,7 +134,7 @@ describe("buildRows", () => {
 });
 
 describe("demoRows", () => {
-  const profile: Profile = { id: "waw", name: "Warszawa→Łódź", lat: 0, lon: 0, r: 1, from: [], to: [] };
+  const profile: Profile = { id: "waw", name: "Warszawa - Łódź", lat: 0, lon: 0, r: 1, from: [], to: [] };
 
   it("returns upcoming departures in order", () => {
     const now = at("14:00:00");
