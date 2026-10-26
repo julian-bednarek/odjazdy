@@ -81,7 +81,8 @@ export interface Candidate {
 
 export interface Realtime {
   delay: number;
-  actual: number | null;
+  // Raw PLK local time; converting thousands of these would blow the CPU budget.
+  actual: string | null;
   cancelled: boolean;
 }
 

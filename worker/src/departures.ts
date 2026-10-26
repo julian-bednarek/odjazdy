@@ -38,7 +38,7 @@ export function realtimeIndex(resp: PlkOperations, stations: number[]): Record<s
       if (!stations.includes(stop.stationId)) continue;
       index[rtKey(train, train.operatingDate, stop.stationId)] = {
         delay: stop.departureDelayMinutes ?? 0,
-        actual: stop.actualDeparture ? plkLocalIso(stop.actualDeparture) : null,
+        actual: stop.actualDeparture ?? null,
         cancelled: train.trainStatus === STATUS_CANCELLED || !!stop.isCancelled,
       };
     }
@@ -54,7 +54,8 @@ export function buildRows(candidates: Candidate[], realtime: Record<string, Real
   const rows = candidates.map((c): Row => {
     const rt = realtime[c.rtKey];
     const delay = rt?.delay ?? 0;
-    return [rt?.actual ?? c.dep + delay * 60, delay, c.label, c.station, c.platform, rt?.cancelled ?? false];
+    const time = rt?.actual ? plkLocalIso(rt.actual) : c.dep + delay * 60;
+    return [time, delay, c.label, c.station, c.platform, rt?.cancelled ?? false];
   });
   return upcoming(rows, now)
     .sort((a, b) => a[0] - b[0])

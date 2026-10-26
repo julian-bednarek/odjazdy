@@ -5,7 +5,8 @@ import type { Candidate, Env, PlkOperations, PlkSchedules, Profile, Realtime } f
 const BASE = "https://pdp-api.plk-sa.pl/api/v1";
 const SCHEDULE_TTL_S = 36 * 3600;
 const REALTIME_TTL_S = 90;
-const REALTIME_PAGE_SIZE = 2000;
+// PLK's maximum: operations span several days, so smaller pages drop today's trains.
+const REALTIME_PAGE_SIZE = 5000;
 
 async function plkGet<T>(env: Env, path: string, params: Record<string, string>): Promise<T> {
   const url = `${BASE}${path}?${new URLSearchParams(params)}`;

@@ -123,6 +123,14 @@ describe("buildRows", () => {
   it("uses the planned time without realtime data", () => {
     expect(buildRows(candidates, {}, at("14:00:00"))[0][0]).toBe(at("14:32:00"));
   });
+
+  it("prefers the actual departure reported by PLK", () => {
+    const actual = realtimeIndex(
+      { trains: [{ scheduleId: 26, orderId: 1, operatingDate: DATE, stations: [{ stationId: WWA_C, departureDelayMinutes: 5, actualDeparture: `${DATE}T14:39:00` }] }] },
+      FROM,
+    );
+    expect(buildRows(candidates, actual, at("14:00:00"))[0][0]).toBe(at("14:39:00"));
+  });
 });
 
 describe("demoRows", () => {
