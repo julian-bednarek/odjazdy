@@ -1,24 +1,27 @@
 :root {
-  --bg: #f6f7f9;
+  --bg: #f4f5f7;
   --surface: #ffffff;
+  --surface-2: #eceef2;
   --text: #15181d;
   --muted: #5d6573;
-  --line: #d9dde3;
+  --line: #dadee4;
   --accent: #0b63ce;
   --accent-text: #ffffff;
   --danger: #c22a2a;
-  --radius: 12px;
+  --radius: 14px;
+  --radius-sm: 10px;
   color-scheme: light dark;
   font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111317;
-    --surface: #1b1e24;
+    --bg: #0f1115;
+    --surface: #1a1d23;
+    --surface-2: #262a32;
     --text: #eef0f3;
     --muted: #9aa3b1;
-    --line: #2f343d;
+    --line: #2d323b;
     --accent: #4d9cff;
     --accent-text: #0b0d10;
     --danger: #ff6b6b;
@@ -27,72 +30,112 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 body { margin: 0; background: var(--bg); color: var(--text); }
-main { max-width: 34rem; margin: 0 auto; padding: 16px 16px 96px; }
-h1 { font-size: 1.5rem; margin: 0 0 4px; }
-h2 { font-size: 1.1rem; margin: 16px 0 4px; }
+main { max-width: 34rem; margin: 0 auto; padding: 20px 16px 0; }
+h1 { margin: 0; font-size: 1.5rem; }
+ol, ul { margin: 0; padding: 0; list-style: none; }
 
-#status { min-height: 1.45em; margin: 0 0 8px; color: var(--muted); }
-.error, #status.error { color: var(--danger); }
+/* Kept in the layout while empty, so screen readers still announce it. */
+#status { margin: 12px 0 0; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--muted); }
+#status:empty { margin: 0; padding: 0; }
+#status.error { color: var(--danger); background: color-mix(in srgb, var(--danger) 14%, transparent); }
+.error { margin: 0; color: var(--danger); }
+#editor-error:empty { display: none; }
 .hint, .muted { color: var(--muted); font-size: 0.9rem; }
+.hint { margin: 0; }
 
-label { display: grid; gap: 4px; margin: 12px 0; font-weight: 600; }
+/* Every block is a title over a card: the profile list as well as each part of the editor. */
+#list, #editor { margin-top: 20px; }
+#editor { display: grid; gap: 20px; }
+.section { min-width: 0; margin: 0; padding: 0; border: 0; }
+.title { display: block; margin: 0 0 8px; padding: 0; font-size: 1rem; font-weight: 600; }
+/* A floated legend leaves the fieldset border and lays out like a heading. */
+legend.title { float: left; width: 100%; }
+.title + * { clear: left; }
+.panel, .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.panel { display: grid; gap: 12px; padding: 14px; }
+
+.field { display: grid; gap: 6px; }
+.field > span { display: flex; justify-content: space-between; align-items: baseline; font-weight: 500; }
+output { color: var(--muted); }
+
 input[type="search"], input[type="password"], #name {
   width: 100%;
-  padding: 12px;
+  min-height: 48px;
+  padding: 0 14px;
   font: inherit;
   color: inherit;
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
 }
-input[type="range"] { width: 100%; accent-color: var(--accent); }
-output { font-weight: 400; color: var(--muted); }
-
-fieldset { margin: 16px 0; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
-legend { padding: 0 4px; font-weight: 600; }
+input:not([type="range"]):focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+input:disabled { opacity: 0.6; }
+input[type="range"] { width: 100%; margin: 0; accent-color: var(--accent); }
 
 button {
   min-height: 44px;
   padding: 10px 16px;
   font: inherit;
+  font-weight: 500;
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
-button:disabled { opacity: 0.4; cursor: default; }
+button:disabled { opacity: 0.35; cursor: default; }
+button:not(.primary):not(:disabled):active { background: var(--surface-2); }
+@media (hover: hover) {
+  button:not(.primary):not(:disabled):hover { background: var(--surface-2); }
+}
 .primary { color: var(--accent-text); background: var(--accent); border-color: var(--accent); font-weight: 600; }
-.danger { color: var(--danger); background: transparent; border-color: transparent; }
+.primary:not(:disabled):active { filter: brightness(1.1); }
+.danger { width: 100%; color: var(--danger); background: transparent; border-color: transparent; }
 .icon { min-width: 44px; padding: 0; }
-#add, .bar .primary { width: 100%; }
-#unpair { margin-top: 24px; }
+#add { width: 100%; color: var(--accent); background: transparent; border-style: dashed; }
+#unpair { margin-top: 8px; }
+#locate { justify-self: start; }
 
-ol, ul { list-style: none; margin: 0; padding: 0; }
 #profiles { display: grid; gap: 8px; margin: 12px 0; }
-.card { display: flex; gap: 4px; align-items: stretch; }
-.card-main { flex: 1; display: grid; gap: 2px; text-align: left; min-width: 0; }
+.card { display: grid; grid-template-columns: 1fr auto; overflow: hidden; }
+.card button { border: 0; border-radius: 0; background: transparent; outline-offset: -2px; }
+.card-main { grid-row: span 2; display: grid; gap: 2px; min-width: 0; padding: 12px 14px; text-align: left; font-weight: 400; }
+.card-main strong { font-weight: 600; }
 .card-main span { overflow-wrap: anywhere; }
+.card .icon { border-left: 1px solid var(--line); color: var(--muted); }
+.card .icon:last-child { border-top: 1px solid var(--line); }
 
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips:empty, .results:empty { display: none; }
+.chip { display: inline-flex; align-items: center; padding-left: 12px; border-radius: 999px; background: var(--surface-2); }
+.chip .icon { min-width: 36px; min-height: 36px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); }
+.results { border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
+.results li + li { border-top: 1px solid var(--line); }
+.result { width: 100%; text-align: left; font-weight: 400; border: 0; border-radius: 0; background: transparent; }
+
+/* Both screens keep their main action within reach at the bottom. */
 .bar {
   position: sticky;
   bottom: 0;
-  margin: 16px -16px 0;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  margin: 0 -16px;
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
   background: var(--bg);
   border-top: 1px solid var(--line);
 }
-.bar label { margin-top: 0; }
+#save { margin-top: 16px; }
+.actions { grid-template-columns: 1fr 1fr; }
 
-#map { height: 55vh; min-height: 240px; margin: 8px 0; border-radius: var(--radius); }
-
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
-.chip { display: flex; align-items: center; gap: 2px; padding-left: 12px; border: 1px solid var(--line); border-radius: 999px; }
-.chip .icon { min-height: 36px; border: 0; background: transparent; }
-.results { margin-top: 4px; }
-.result { width: 100%; text-align: left; border-radius: 0; border-width: 0 0 1px; }
-
-.actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
-.actions .primary { flex: 1 1 100%; }
+/* isolation keeps Leaflet's z-indexed panes under the sticky bar. */
+#map { height: 45vh; min-height: 240px; border-radius: var(--radius-sm); isolation: isolate; }
+.leaflet-container { font-family: inherit; background: var(--surface-2); }
+.leaflet-container .leaflet-control-attribution { color: var(--muted); background: color-mix(in srgb, var(--surface) 85%, transparent); }
+.leaflet-container .leaflet-control-attribution a { color: var(--accent); }
+.leaflet-touch .leaflet-bar { border-color: var(--line); }
+.leaflet-bar a, .leaflet-bar a:hover, .leaflet-bar a:focus, .leaflet-bar a.leaflet-disabled { color: var(--text); background: var(--surface); border-color: var(--line); }
+.leaflet-bar a.leaflet-disabled { color: var(--muted); }

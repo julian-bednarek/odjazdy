@@ -25,7 +25,7 @@ class TrainGlanceView extends WatchUi.GlanceView {
             line(dc, 0, top, error, Graphics.COLOR_LT_GRAY);
             return;
         }
-        line(dc, 0, top, board.title, Graphics.COLOR_LT_GRAY);
+        line(dc, 0, top, board.title, board.color);
         if (board.rows.size() == 0) {
             line(dc, 0, bottom, Text.get(Rez.Strings.NoTrains), board.color);
             return;
