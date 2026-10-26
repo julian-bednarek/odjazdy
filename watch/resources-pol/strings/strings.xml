@@ -1,5 +1,5 @@
 <strings>
-    <string id="AppName">Pociąg</string>
+    <string id="AppName">Odjazdy</string>
 
     <string id="Loading" scope="glance">Ładowanie…</string>
     <string id="NotConfigured" scope="glance">Brak konfiguracji</string>

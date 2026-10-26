@@ -1,6 +1,6 @@
 export default {
-  title: "Pociąg – profile",
-  appName: "Pociąg",
+  title: "Odjazdy – profile",
+  appName: "Odjazdy",
   profiles: "Profile",
   profilesHint: "W kilku strefach naraz wygrywa najmniejsza. Poza strefami zegarek pokazuje ostatni profil, a bez niego pierwszy z listy.",
   addProfile: "+ Dodaj profil",

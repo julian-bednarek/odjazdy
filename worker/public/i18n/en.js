@@ -1,7 +1,7 @@
 // The base language: it defines every key, and the other languages fall back to it.
 export default {
-  title: "Next Train – profiles",
-  appName: "Next Train",
+  title: "Departures – profiles",
+  appName: "Departures",
   profiles: "Profiles",
   profilesHint: "When you are in several zones at once, the smallest wins. Outside every zone the watch shows the last profile, or the first one on the list.",
   addProfile: "+ Add profile",

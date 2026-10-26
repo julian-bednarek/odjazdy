@@ -12,7 +12,7 @@ KEY="${CIQ_KEY:-$HOME/.config/garmin/developer_key.der}"
 CIQ_HOME="$(wslpath "$(win echo %APPDATA%)")/Garmin/ConnectIQ"
 SDK="$(wslpath "$(tr -d '\r' < "$CIQ_HOME/current-sdk.cfg")")/bin"
 JAVA="$(wslpath "$(win where java | head -1)")"
-PRG=bin/train-status.prg
+PRG=bin/odjazdy.prg
 URL_PATTERN='^https://[^/<>&"]+$'
 
 [[ -f .env ]] && source .env

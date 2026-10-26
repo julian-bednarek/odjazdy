@@ -1,95 +1,53 @@
-# Train Status
+# Odjazdy
 
-Glance i widget na Garmin Forerunner 165 pokazujący, o której i za ile odjeżdża
-najbliższy bezpośredni pociąg (z opóźnieniem na żywo) dla relacji dobranej do
-miejsca, w którym jesteś.
+*Odjazdy* is Polish for "Departures": a glance and widget for the Garmin Forerunner 165
+that shows when the next direct train leaves, and how soon, with live delays, for a
+route picked by where you are.
 
 ```
-zegarek ──(Garmin Connect, makeWebRequest)──▶ Cloudflare Worker ──▶ PKP PLK Open Data API
-                                               └ KV: konfiguracja profili
+watch ──(Garmin Connect, makeWebRequest)──▶ Cloudflare Worker ──▶ PKP PLK Open Data API
+                                             └ KV: profile config
 ```
 
-- `worker/` – Cloudflare Worker (TypeScript): wybór profilu po lokalizacji, rozkład + realtime z PLK, ~1 KB JSON dla zegarka. W `worker/public/` jest wizard na telefon (mapa stref + wyszukiwarka stacji).
-- `watch/` – aplikacja Connect IQ (Monkey C): glance, widok szczegółów, odświeżanie w tle co 30 min.
+- `worker/` – Cloudflare Worker (TypeScript): picks the profile by location, merges the PLK timetable with realtime data, sends the watch ~1 KB of JSON. `worker/public/` holds the phone wizard (zone map + station search).
+- `watch/` – Connect IQ app (Monkey C): glance, detail view, background refresh every 30 min.
 
-Języki zegarka: angielski (bazowy) i polski – wybierane według ustawień zegarka, teksty w `watch/resources*/strings/strings.xml`.
+Watch languages: English (base) and Polish, chosen by the watch settings; strings in `watch/resources*/strings/strings.xml`.
 
-Języki wizarda: angielski (bazowy) i polski – wybierane według języka przeglądarki (`/setup?lang=en` wymusza język), teksty w `worker/public/i18n/`. Nowy język to nowy plik w `i18n/` i wpis w `worker/public/i18n.js`. Test `worker/test/i18n.test.ts` sprawdza, czy ma wszystkie klucze i te same zmienne `{…}` co angielski.
+Wizard languages: English (base) and Polish, chosen by the browser language (`/setup?lang=en` forces one); strings in `worker/public/i18n/`. A new language is just a new file, `i18n/<code>.js` (e.g. `de.js`), loaded on demand; nothing else needs registering. `worker/test/i18n.test.ts` finds every file there and checks that it has every key and the same `{…}` placeholders as English.
 
-Kod: licencja MIT ([LICENSE](LICENSE)). Wyjątek: Leaflet 1.9.4 w `worker/public/vendor/leaflet/` (BSD-2-Clause, [LICENSE](worker/public/vendor/leaflet/LICENSE)), trzymany lokalnie, żeby wizard nie ładował skryptów z CDN-u. Dane: PKP Polskie Linie Kolejowe S.A., na warunkach PLK Open Data.
+- [SETUP.md](SETUP.md) – deploying the worker, building the watch app, pairing.
+- [SECURITY.md](SECURITY.md) – what is secret, how pairing is protected, revoking a watch.
 
-## Setup
+Code: MIT licence ([LICENSE](LICENSE)). Exception: Leaflet 1.9.4 in `worker/public/vendor/leaflet/` (BSD-2-Clause, [LICENSE](worker/public/vendor/leaflet/LICENSE)), kept locally so the wizard loads no scripts from a CDN. Data: PKP Polskie Linie Kolejowe S.A., under the PLK Open Data terms.
 
-1. **Klucz PLK:** formularz na <https://pdp-api.plk-sa.pl/>, akceptacja trwa 3–5 dni roboczych. Do tego czasu Worker zwraca dane demo.
-2. **Worker (WSL, wymaga Node ≥ 22 – wrangler nie działa na Node 20):**
-   ```sh
-   cd worker
-   npm install
-   npm test
-   npx wrangler login
-   npx wrangler deploy                      # za pierwszym razem tworzy też KV
-   npx wrangler secret put PLK_API_KEY      # gdy przyjdzie klucz
-   npx wrangler secret put SETUP_PASSWORD   # hasło do parowania nowych zegarków
-   ```
-   `SETUP_PASSWORD` wygeneruj w menedżerze haseł (20+ losowych znaków). Bez niego albo z krótszym Worker nie sparuje nowego zegarka. Lokalnie (`wrangler dev`) oba sekrety idą do `worker/.dev.vars` (wzór: `.dev.vars.example`).
-   Deploy dopisuje id KV do `wrangler.jsonc`. Można je zostawić albo odrzucić (`git checkout wrangler.jsonc`), bo kolejne deploye znajdą KV po bindingu.
-3. **Zegarek:** SDK i symulator na Windowsie (SDK Manager + urządzenie fr165), build z WSL Windowsową Javą:
-   ```sh
-   watch/ciq.sh        # build → watch/bin/train-status.prg
-   watch/ciq.sh run    # build + uruchomienie w symulatorze
-   ```
-   Klucz deweloperski: `~/.config/garmin/developer_key.der` (albo `CIQ_KEY=...`). Adres Workera: `cp watch/.env.example watch/.env` i ustaw `WORKER_URL` na sam adres bez ścieżki (`https://train-status.<subdomena>.workers.dev`). `ciq.sh` wkompilowuje go w build, a `watch/.env` jest w `.gitignore`.
-4. **Na zegarek:** skopiuj `watch/bin/train-status.prg` przez USB do `GARMIN/APPS`.
-5. **Parowanie i profile:** otwórz apkę i naciśnij START („konfiguruj w telefonie”). Garmin Connect pokaże na telefonie powiadomienie, a po kliknięciu otworzy się wizard. Ustaw strefy na mapie, wybierz stacje skąd i dokąd i zapisz, podając `SETUP_PASSWORD`. Zegarek sam pobierze profile w ciągu minuty. Później do edycji wystarczy przytrzymać UP na zegarku, bez hasła.
+## Worker API
 
-## API Workera
+Watch:
 
-Zegarek:
-
-`POST /v1/departures` z nagłówkami `X-Device: sha256(sekret)` i `X-Signature: HMAC-SHA256(sekret, "timestamp\nlat\nlon\nprofile")`:
+`POST /v1/departures` with headers `X-Device: sha256(secret)` and `X-Signature: HMAC-SHA256(secret, "timestamp\nlat\nlon\nprofile")`:
 
 ```json
 {"timestamp":"1761400000","lat":"52.240","lon":"21.046","profile":""}
 ```
 
-Sekret zna tylko zegarek i KV; podpis obejmuje lokalizację i profil, a zapytania starsze niż 5 min są odrzucane. Odpowiedź:
+Only the watch and KV know the secret; the signature covers the location and the profile, and requests more than 5 min old are rejected. Response:
 
 ```json
-{"time":1761400000,"profile":"dom","name":"Dom - Centralna","matched":true,"stale":false,
- "profiles":["dom","waw"],
+{"time":1761400000,"profile":"home","name":"Home - Centralna","matched":true,"stale":false,
+ "profiles":["home","waw"],
  "departures":[[1761400420,5,"KM 1234","Warszawa Centralna","3",false]]}
 ```
 
-Wiersz w `departures` = [przewidywany odjazd (epoch s), opóźnienie (min), pociąg, stacja odjazdu, peron, odwołany]. `matched` – profil pasuje do lokalizacji; `stale` – PLK nie odpowiada, dane z ostatniej udanej odpowiedzi. Błędy: `{"error":"no_config" | "unauthorized" | "bad_request" | "upstream"}`.
+A `departures` row is [expected departure (epoch s), delay (min), train, departure station, platform, cancelled]. `matched`: the profile fits the location; `stale`: PLK is not answering, so the rows come from the last good response. Errors: `{"error":"no_config" | "unauthorized" | "bad_request" | "upstream"}`.
 
-`POST /v1/pair` zwraca `{"code"}`, jednorazowy kod do wizarda, ważny 10 min. Niesparowany zegarek wysyła `{"secret":"<hex>"}`. To jedyny raz, kiedy sekret opuszcza zegarek. Sparowany wysyła `{"timestamp"}` i te same nagłówki co wyżej, z podpisem `HMAC(sekret, "timestamp\npair")`.
+`POST /v1/pair` returns `{"code"}`, a one-time wizard code valid for 10 min. An unpaired watch sends `{"secret":"<hex>"}`, the only time the secret leaves the watch. A paired one sends `{"timestamp"}` with the same headers as above, signed as `HMAC(secret, "timestamp\npair")`.
 
-Telefon:
+Phone:
 
-- `GET /open?c=<kod>` zużywa kod, ustawia cookie sesji `__Host-session` (`HttpOnly; Secure; SameSite=Strict`, 30 min) i przekierowuje na `/setup`.
-- `GET /setup` to wizard (pliki statyczne z `worker/public/`).
-- `GET /api/config` zwraca `{"registered","profiles"}`. `PUT /api/config` przyjmuje `{"profiles","password"?}`, a hasło jest wymagane tylko dla nowego zegarka. `DELETE /api/config` odłącza zegarek.
-- `GET /api/stations` zwraca słownik stacji PLK `[[id, nazwa], ...]`, trzymany w cache na dobę.
+- `GET /open?c=<code>` uses up the code, sets the `__Host-session` cookie (`HttpOnly; Secure; SameSite=Strict`, 30 min) and redirects to `/setup`.
+- `GET /setup` is the wizard (static files from `worker/public/`).
+- `GET /api/config` returns `{"registered","profiles"}`. `PUT /api/config` takes `{"profiles","password"?}`; the password is required only for a new watch. `DELETE /api/config` unpairs the watch.
+- `GET /api/stations` returns the PLK station dictionary `[[id, name], ...]`, cached for a day.
 
-Wszystkie `/api/*` wymagają cookie sesji. Błędy: `unauthorized` (brak sesji), `password` (złe hasło; po 5 próbach sesja wygasa), `closed` (brak `SETUP_PASSWORD` albo krótsze niż 20 znaków), `bad_request` (zła lista profili).
-
-## Bezpieczeństwo
-
-- **Sekrety:**
-  - sekret zegarka (Storage zegarka i `cfg:` w KV);
-  - `SETUP_PASSWORD`;
-  - `PLK_API_KEY`.
-
-  Sekrety Workera są tylko do zapisu: po `wrangler secret put` nie da się ich odczytać.
-- **Nie są sekretami:**
-  - adres Workera;
-  - nazwa Workera;
-  - id KV.
-
-  Bezpieczeństwo opiera się na sekrecie zegarka i haśle, nie na tajności URL-a.
-- **Link z zegarka** działa raz i najwyżej 10 min, więc z historii przeglądarki nic się nie odzyska. Worker nie odróżni go od linku podrzuconego przez kogoś obcego, bo Garmin Connect otwiera go w przeglądarce jako przejście z innej strony. Dlatego otwieraj tylko powiadomienie z Garmin Connect, zaraz po START albo UP na zegarku. Token sesji siedzi w cookie `HttpOnly`, poza zasięgiem JS-a i URL-a.
-- **Hasło** chroni tylko przed parowaniem obcych zegarków, które zużywałyby Twój limit PLK. Twoich profili nie odsłania. Limit 5 prób dotyczy jednej sesji, a nową sesję może otworzyć każdy, więc przed zgadywaniem chroni długość hasła. Zmiana: ponowne `npx wrangler secret put SETUP_PASSWORD`.
-- **Unieważnienie zegarka:** w wizardzie „Odłącz zegarek” (albo `npx wrangler kv key list --binding TS_KV --remote --prefix cfg:`, potem `kv key delete`), a potem reinstalacja apki, która tworzy nowy sekret.
-- KV trzyma sekrety i współrzędne stref jawnym tekstem, więc włącz 2FA na koncie Cloudflare.
-- Publiczny URL można zalać żądaniami. Wyczerpie to darmowe dzienne limity (Workers, KV, PLK) i zegarek przestanie działać do resetu.
-- Kafelki mapy w wizardzie pobierasz prosto z serwerów OpenStreetMap, więc OSMF widzi oglądany obszar.
+Every `/api/*` call needs the session cookie. Errors: `unauthorized` (no session), `password` (wrong password; the session ends after 5 tries), `closed` (`SETUP_PASSWORD` missing or shorter than 20 characters), `bad_request` (invalid profile list).

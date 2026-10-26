@@ -1,5 +1,5 @@
 <strings>
-    <string id="AppName">Next Train</string>
+    <string id="AppName">Departures</string>
 
     <string id="Loading" scope="glance">Loading…</string>
     <string id="NotConfigured" scope="glance">Not configured</string>
