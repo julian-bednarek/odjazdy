@@ -2,8 +2,9 @@ import Toybox.Cryptography;
 import Toybox.Lang;
 import Toybox.StringUtil;
 
-// The secret never leaves the watch: the worker knows the device by the
-// secret's SHA-256 and checks an HMAC over the request fields.
+// The secret leaves the watch once, when an unpaired watch introduces itself.
+// After that the worker knows the device by the secret's SHA-256 and checks
+// an HMAC over the request fields.
 (:background :glance)
 module Auth {
     const FIELD_SEPARATOR = "\n";

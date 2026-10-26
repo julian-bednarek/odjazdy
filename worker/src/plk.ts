@@ -1,12 +1,15 @@
 import { cached } from "./cache";
 import { candidatesFromSchedule, realtimeIndex } from "./departures";
-import type { Candidate, Env, PlkOperations, PlkSchedules, Profile, Realtime } from "./types";
+import type { Candidate, Env, PlkOperations, PlkSchedules, PlkStations, Profile, Realtime, Station } from "./types";
 
 const BASE = "https://pdp-api.plk-sa.pl/api/v1";
 const SCHEDULE_TTL_S = 36 * 3600;
 const REALTIME_TTL_S = 90;
 // PLK's maximum: operations span several days, so smaller pages drop today's trains.
 const REALTIME_PAGE_SIZE = 5000;
+const STATIONS_TTL_S = 24 * 3600;
+// PLK's maximum, more than there are stations: the wizard searches the whole list locally.
+const STATIONS_PAGE_SIZE = 10000;
 
 async function plkGet<T>(env: Env, path: string, params: Record<string, string>): Promise<T> {
   const url = `${BASE}${path}?${new URLSearchParams(params)}`;
@@ -26,5 +29,12 @@ export function getRealtime(env: Env, stations: number[]): Promise<Record<string
   return cached(env.TS_KV, `operations/${stations}`, REALTIME_TTL_S, async () => {
     const params = { stations: `${stations}`, withPlanned: "true", pageSize: `${REALTIME_PAGE_SIZE}` };
     return realtimeIndex(await plkGet<PlkOperations>(env, "/operations", params), stations);
+  });
+}
+
+export function getStations(env: Env): Promise<Station[]> {
+  return cached(env.TS_KV, "stations", STATIONS_TTL_S, async () => {
+    const { stations } = await plkGet<PlkStations>(env, "/dictionaries/stations", { pageSize: `${STATIONS_PAGE_SIZE}` });
+    return (stations ?? []).map(({ id, name }): Station => [id, name ?? `${id}`]);
   });
 }

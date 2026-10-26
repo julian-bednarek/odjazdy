@@ -9,6 +9,9 @@ module Api {
     const MIN_REFRESH_S = 120;
     const COORDINATE_FORMAT = "%.3f";
 
+    const PATH_DEPARTURES = "/v1/departures";
+    const PATH_PAIR = "/v1/pair";
+
     const HEADER_CONTENT_TYPE = "Content-Type";
     const HEADER_DEVICE = "X-Device";
     const HEADER_SIGNATURE = "X-Signature";
@@ -27,7 +30,7 @@ module Api {
     const PROFILES = "profiles";
     const DEPARTURES = "departures";
 
-    const ERROR_UNAUTHORIZED = "unauthorized";
+    const ERROR_NO_CONFIG = "no_config";
 
     typedef Response as Dictionary<Application.PropertyKeyType, Application.PropertyValueType>;
     typedef Callback as Method(responseCode as Number, data as Dictionary or String or Null) as Void;
@@ -42,24 +45,40 @@ module Api {
         var location = Loc.current();
         var profile = Store.manualProfile();
         var fields = [
-            Time.now().value().toString(),
+            timestamp(),
             location != null ? location[0].format(COORDINATE_FORMAT) : "",
             location != null ? location[1].format(COORDINATE_FORMAT) : "",
             profile != null ? profile : ""
         ];
         var body = { TIMESTAMP => fields[0], LAT => fields[1], LON => fields[2], PROFILE => fields[3] };
+        post(PATH_DEPARTURES, body, signed(secret, fields), callback);
+        return true;
+    }
+
+    function post(path as String, body as Dictionary<Object, Object>, headers as Dictionary, callback as Callback) as Void {
+        headers.put(HEADER_CONTENT_TYPE, Communications.REQUEST_CONTENT_TYPE_JSON);
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_POST,
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON,
-            :headers => {
-                HEADER_CONTENT_TYPE => Communications.REQUEST_CONTENT_TYPE_JSON,
-                HEADER_DEVICE => Auth.deviceId(secret),
-                HEADER_SIGNATURE => Auth.sign(secret, fields)
-            }
+            :headers => headers
         };
-        var url = Application.loadResource(Rez.Strings.WorkerUrl) as String;
-        Communications.makeWebRequest(url, body, options, callback);
-        return true;
+        Communications.makeWebRequest(url(path), body, options, callback);
+    }
+
+    function signed(secret as ByteArray, fields as Array<String>) as Dictionary {
+        return { HEADER_DEVICE => Auth.deviceId(secret), HEADER_SIGNATURE => Auth.sign(secret, fields) };
+    }
+
+    function url(path as String) as String {
+        return (Application.loadResource(Rez.Strings.WorkerUrl) as String) + path;
+    }
+
+    function timestamp() as String {
+        return Time.now().value().toString();
+    }
+
+    function unregistered(resp as Response?) as Boolean {
+        return resp != null && ERROR_NO_CONFIG.equals(resp[ERROR]);
     }
 
     // Answers worth keeping: data, or an error the screen should explain.

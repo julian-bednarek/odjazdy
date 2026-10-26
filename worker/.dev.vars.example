@@ -1,2 +1,3 @@
 # Copy to .dev.vars for `wrangler dev`. Leave PLK_API_KEY empty to get demo data.
 PLK_API_KEY=
+SETUP_PASSWORD=

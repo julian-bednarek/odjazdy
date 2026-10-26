@@ -13,11 +13,11 @@ CIQ_HOME="$(wslpath "$(win echo %APPDATA%)")/Garmin/ConnectIQ"
 SDK="$(wslpath "$(tr -d '\r' < "$CIQ_HOME/current-sdk.cfg")")/bin"
 JAVA="$(wslpath "$(win where java | head -1)")"
 PRG=bin/train-status.prg
-URL_PATTERN='^https://[^<>&"]+$'
+URL_PATTERN='^https://[^/<>&"]+$'
 
 [[ -f .env ]] && source .env
 : "${WORKER_URL:?set WORKER_URL in watch/.env (see .env.example)}"
-[[ "$WORKER_URL" =~ $URL_PATTERN ]] || { echo "WORKER_URL must be an https:// URL" >&2; exit 1; }
+[[ "$WORKER_URL" =~ $URL_PATTERN ]] || { echo "WORKER_URL must be the worker's https:// origin, without a path" >&2; exit 1; }
 
 mkdir -p bin/env
 cat > bin/env/env.xml <<XML

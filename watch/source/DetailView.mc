@@ -10,10 +10,8 @@ class DetailView extends WatchUi.View {
     private const TITLE_Y = 68;
     private const MESSAGE_Y = 195;
     private const ERROR_Y = 140;
-    private const SETUP_LABEL_Y = 190;
-    private const SETUP_CODE_Y = 228;
-    private const SETUP_LINE_HEIGHT = 36;
-    private const SETUP_CODE_LINES = 2;
+    private const HINT_Y = 215;
+    private const HINT_LINES = 2;
     private const FIRST_ROW_Y = 122;
     private const ROW_HEIGHT = 80;
     private const DETAILS_OFFSET_Y = 34;
@@ -47,6 +45,7 @@ class DetailView extends WatchUi.View {
     }
 
     function onTick() as Void {
+        Setup.poll();
         WatchUi.requestUpdate();
     }
 
@@ -66,7 +65,9 @@ class DetailView extends WatchUi.View {
         var error = board.error;
         if (error != null) {
             centered(dc, ERROR_Y, Graphics.FONT_SMALL, error, Graphics.COLOR_WHITE);
-            drawSetupCode(dc);
+            if (board.unregistered) {
+                Draw.lines(dc, dc.getWidth() / 2, HINT_Y, Graphics.FONT_TINY, Setup.hint(), Graphics.COLOR_LT_GRAY, Graphics.TEXT_JUSTIFY_CENTER, dc.getWidth() - 2 * MARGIN, HINT_LINES);
+            }
             tickEvery(REDRAW_MS);
             return;
         }
@@ -149,21 +150,6 @@ class DetailView extends WatchUi.View {
         dc.setPenWidth(1);
     }
 
-    // Shown until the worker accepts this watch; registered with `npm run register`.
-    private function drawSetupCode(dc as Dc) as Void {
-        var secret = Store.secret();
-        if (secret == null) {
-            return;
-        }
-        var code = Auth.hex(secret);
-        var lineLength = code.length() / SETUP_CODE_LINES;
-        centered(dc, SETUP_LABEL_Y, Graphics.FONT_XTINY, Text.get(Rez.Strings.SetupCode), Graphics.COLOR_DK_GRAY);
-        for (var i = 0; i < SETUP_CODE_LINES; i++) {
-            var part = code.substring(i * lineLength, (i + 1) * lineLength) as String;
-            centered(dc, SETUP_CODE_Y + i * SETUP_LINE_HEIGHT, Graphics.FONT_TINY, part, Graphics.COLOR_LT_GRAY);
-        }
-    }
-
     private function centered(dc as Dc, y as Number, font as FontType, text as String, color as ColorType) as Void {
         Draw.text(dc, dc.getWidth() / 2, y, font, text, color, Graphics.TEXT_JUSTIFY_CENTER, dc.getWidth() - 2 * MARGIN);
     }
@@ -179,6 +165,7 @@ class DetailView extends WatchUi.View {
 }
 
 // UP/DOWN scroll the departures; a left swipe switches profile, since a right swipe from the edge is Back.
+// Holding UP (menu) opens the profile wizard on the phone, as does START on an unpaired watch.
 class DetailDelegate extends WatchUi.BehaviorDelegate {
     private var _view as DetailView;
 
@@ -196,7 +183,16 @@ class DetailDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        Api.refresh(true);
+        if (Api.unregistered(Store.response())) {
+            Setup.start();
+        } else {
+            Api.refresh(true);
+        }
+        return true;
+    }
+
+    function onMenu() as Boolean {
+        Setup.start();
         return true;
     }
 

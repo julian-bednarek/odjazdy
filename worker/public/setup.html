@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Pociąg – profile</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="setup.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <script src="setup.js" defer></script>
+</head>
+<body>
+  <main>
+    <h1>Pociąg</h1>
+    <p id="status" role="status"></p>
+
+    <section id="list" hidden>
+      <h2>Profile</h2>
+      <p class="hint">W kilku strefach naraz wygrywa najmniejsza. Poza strefami zegarek pokazuje ostatni profil, a bez niego pierwszy z listy.</p>
+      <ol id="profiles"></ol>
+      <button type="button" id="add">+ Dodaj profil</button>
+
+      <form id="save" class="bar">
+        <input name="username" autocomplete="username" value="train-status" hidden>
+        <label id="password" hidden>Hasło właściciela (nowy zegarek)
+          <input type="password" id="password-input" autocomplete="current-password">
+        </label>
+        <button type="submit" class="primary">Zapisz na zegarku</button>
+      </form>
+      <button type="button" id="unpair" class="danger" hidden>Odłącz zegarek</button>
+    </section>
+
+    <form id="editor" hidden>
+      <label>Nazwa
+        <input id="name" maxlength="40" required placeholder="Dom - Centralna">
+      </label>
+
+      <fieldset>
+        <legend>Strefa</legend>
+        <p class="hint">Dotknij mapy, żeby ustawić środek.</p>
+        <div id="map"></div>
+        <label>Promień <output id="radius-value"></output>
+          <input type="range" id="radius" min="0" max="100">
+        </label>
+        <button type="button" id="locate">Moja lokalizacja</button>
+      </fieldset>
+
+      <fieldset class="picker" data-field="from" data-max="3">
+        <legend>Skąd (stacje startowe, maks. 3)</legend>
+        <ul class="chips"></ul>
+        <input type="search" placeholder="Szukaj stacji" autocomplete="off">
+        <ul class="results"></ul>
+      </fieldset>
+
+      <fieldset class="picker" data-field="to" data-max="10">
+        <legend>Dokąd (stacje docelowe)</legend>
+        <ul class="chips"></ul>
+        <input type="search" placeholder="Szukaj stacji" autocomplete="off">
+        <ul class="results"></ul>
+      </fieldset>
+
+      <p id="editor-error" class="error" role="alert"></p>
+      <div class="actions">
+        <button type="submit" class="primary">Gotowe</button>
+        <button type="button" id="cancel">Anuluj</button>
+        <button type="button" id="delete" class="danger">Usuń profil</button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

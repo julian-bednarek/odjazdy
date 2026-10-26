@@ -1,0 +1,5 @@
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com; img-src https://tile.openstreetmap.org; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'
+  Referrer-Policy: strict-origin
+  X-Content-Type-Options: nosniff
+  Cache-Control: no-cache

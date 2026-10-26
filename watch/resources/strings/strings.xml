@@ -3,7 +3,7 @@
 
     <string id="Loading" scope="glance">Loading…</string>
     <string id="NotConfigured" scope="glance">Not configured</string>
-    <string id="Unauthorized" scope="glance">Wrong setup code</string>
+    <string id="Unauthorized" scope="glance">Check watch time</string>
     <string id="OpenApp" scope="glance">Open the app</string>
     <string id="NoTrains" scope="glance">No trains</string>
     <string id="Cancelled" scope="glance">cancelled</string>
@@ -11,6 +11,8 @@
     <string id="InMinutes" scope="glance">in $1$ min</string>
     <string id="Platform" scope="glance">platform $1$</string>
 
-    <string id="SetupCode">Setup code</string>
+    <string id="SetupHint">START: set up on phone</string>
+    <string id="ContinueOnPhone">Continue on phone</string>
+    <string id="PairFailed">No connection</string>
     <string id="Attribution">Data: PKP PLK S.A.</string>
 </strings>

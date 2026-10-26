@@ -1,6 +1,8 @@
 export interface Env {
   TS_KV: KVNamespace;
   PLK_API_KEY?: string;
+  // Required to pair a new watch; without it pairing is closed.
+  SETUP_PASSWORD?: string;
 }
 
 export interface Profile {
@@ -16,6 +18,16 @@ export interface Profile {
 export interface DeviceConfig {
   secret: string;
   profiles: Profile[];
+}
+
+// A watch waiting for its phone to follow the one-time wizard link.
+export interface Pairing {
+  device: string;
+  secret: string;
+}
+
+export interface Session extends Pairing {
+  passwordTries: number;
 }
 
 export interface SignedFields {
@@ -71,6 +83,10 @@ export interface PlkOperations {
     | null;
 }
 
+export interface PlkStations {
+  stations?: { id: number; name?: string | null }[] | null;
+}
+
 export interface Candidate {
   rtKey: string;
   dep: number;
@@ -85,6 +101,8 @@ export interface Realtime {
   actual: string | null;
   cancelled: boolean;
 }
+
+export type Station = [id: number, name: string];
 
 // [expected departure, delay min, train, origin station, platform, cancelled]
 export type Row = [number, number, string, string, string, boolean];

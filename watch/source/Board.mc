@@ -10,6 +10,7 @@ class Board {
     private const DEPARTED_GRACE_S = 60;
 
     var error as String? = null;
+    var unregistered as Boolean = false;
     var title as String = "";
     var color as ColorType = Graphics.COLOR_WHITE;
     var rows as Array<Array> = [];
@@ -21,8 +22,8 @@ class Board {
         } else if (resp == null) {
             error = Text.get(Rez.Strings.Loading);
         } else if (resp[Api.ERROR] != null) {
-            var unauthorized = Api.ERROR_UNAUTHORIZED.equals(resp[Api.ERROR]);
-            error = Text.get(unauthorized ? Rez.Strings.Unauthorized : Rez.Strings.NotConfigured);
+            unregistered = Api.unregistered(resp);
+            error = Text.get(unregistered ? Rez.Strings.NotConfigured : Rez.Strings.Unauthorized);
         }
         if (resp == null || error != null) {
             return;
@@ -84,9 +85,15 @@ module Draw {
     // Single line, vertically centred on y, cut with an ellipsis to maxWidth.
     // Returns the x where left-aligned text ends.
     function text(dc as Dc, x as Number, y as Numeric, font as FontType, str as String, color as ColorType, justify as Number, maxWidth as Number) as Number {
-        var fitted = Graphics.fitTextToArea(str, font, maxWidth, dc.getFontHeight(font), true) as String;
+        var fitted = lines(dc, x, y, font, str, color, justify, maxWidth, 1);
+        return x + dc.getTextWidthInPixels(fitted, font);
+    }
+
+    // Like text, but wraps onto up to count lines. Returns the text drawn.
+    function lines(dc as Dc, x as Number, y as Numeric, font as FontType, str as String, color as ColorType, justify as Number, maxWidth as Number, count as Number) as String {
+        var fitted = Graphics.fitTextToArea(str, font, maxWidth, count * dc.getFontHeight(font), true) as String;
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, font, fitted, justify | Graphics.TEXT_JUSTIFY_VCENTER);
-        return x + dc.getTextWidthInPixels(fitted, font);
+        return fitted;
     }
 }

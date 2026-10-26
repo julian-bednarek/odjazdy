@@ -1,27 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import worker from "../src/index";
 import type { DeviceConfig, Env, SignedFields } from "../src/types";
 import { DEVICE, SECRET, sign } from "./signing";
+import { BASE, fetchWorker, kv } from "./worker";
 
-const URL = "https://worker.test/v1/departures";
+const URL = `${BASE}/v1/departures`;
 const config: DeviceConfig = {
   secret: SECRET,
   profiles: [{ id: "dom", name: "Dom - Centralna", lat: 52.2395, lon: 21.0458, r: 1500, from: [1], to: [2] }],
 };
-
-const ctx = { waitUntil() {}, passThroughOnException() {}, props: {} } as unknown as ExecutionContext;
-let kv: Map<string, string>;
-const env = (vars: Partial<Env>) =>
-  ({
-    ...vars,
-    TS_KV: {
-      get: async (key: string, type?: string) => {
-        const value = kv.get(key) ?? null;
-        return value !== null && type === "json" ? JSON.parse(value) : value;
-      },
-      put: async (key: string, value: string) => void kv.set(key, value),
-    },
-  }) as unknown as Env;
 
 async function request(fields: Partial<SignedFields> = {}, signWith = SECRET, method = "POST") {
   const body: SignedFields = { timestamp: `${Math.floor(Date.now() / 1000)}`, lat: "52.240", lon: "21.046", profile: "", ...fields };
@@ -34,12 +20,13 @@ async function request(fields: Partial<SignedFields> = {}, signWith = SECRET, me
 }
 
 const call = async (req: Request | Promise<Request>, vars: Partial<Env> = {}) => {
-  const res = await worker.fetch((await req) as Request<unknown, IncomingRequestCfProperties>, env(vars), ctx);
+  const res = await fetchWorker(await req, vars);
   return { status: res.status, body: (await res.json()) as Record<string, unknown> };
 };
 
 beforeEach(() => {
-  kv = new Map([[`cfg:${DEVICE}`, JSON.stringify(config)]]);
+  kv.clear();
+  kv.set(`cfg:${DEVICE}`, JSON.stringify(config));
 });
 
 afterEach(() => {
