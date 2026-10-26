@@ -18,7 +18,6 @@ class DetailView extends WatchUi.View {
     private const ROW_HEIGHT = 80;
     private const DETAILS_OFFSET_Y = 34;
     private const DELAY_GAP = 8;
-    private const ATTRIBUTION_Y = 362;
     private const VISIBLE_ROWS = 3;
     private const SCROLLBAR_INSET = 8;
     private const SCROLLBAR_WIDTH = 4;
@@ -72,18 +71,25 @@ class DetailView extends WatchUi.View {
             return;
         }
         var rows = board.rows;
-        _maxFirst = rows.size() > VISIBLE_ROWS ? rows.size() - VISIBLE_ROWS : 0;
+        // Every departure can scroll to the top, where its details marquee.
+        _maxFirst = rows.size() > 1 ? rows.size() - 1 : 0;
         scroll(0);
         centered(dc, TITLE_Y, Graphics.FONT_SMALL, board.title, board.color);
         if (rows.size() == 0) {
             centered(dc, MESSAGE_Y, Graphics.FONT_SMALL, Text.get(Rez.Strings.NoTrains), Graphics.COLOR_WHITE);
         }
         var animating = false;
-        for (var i = 0; i < VISIBLE_ROWS && _first + i < rows.size(); i++) {
-            animating = drawRow(dc, rows[_first + i], FIRST_ROW_Y + i * ROW_HEIGHT, i == 0) || animating;
+        for (var i = 0; i < VISIBLE_ROWS; i++) {
+            var index = _first + i;
+            var y = FIRST_ROW_Y + i * ROW_HEIGHT;
+            if (index < rows.size()) {
+                animating = drawRow(dc, rows[index], y, i == 0) || animating;
+            } else if (index == rows.size() && rows.size() > 0) {
+                // PLK's terms ask for the data source wherever its data is shown.
+                centered(dc, y, Graphics.FONT_XTINY, Text.get(Rez.Strings.Attribution), Graphics.COLOR_DK_GRAY);
+            }
         }
-        drawScrollbar(dc, rows.size());
-        centered(dc, ATTRIBUTION_Y, Graphics.FONT_XTINY, Text.get(Rez.Strings.Attribution), Graphics.COLOR_DK_GRAY);
+        drawScrollbar(dc, rows.size() + 1);
         tickEvery(animating ? MARQUEE_TICK_MS : REDRAW_MS);
     }
 
@@ -122,21 +128,22 @@ class DetailView extends WatchUi.View {
         return true;
     }
 
-    // An arc along the right edge, like the watch's own lists.
+    // An arc along the right edge, like the watch's own lists; total counts the footer too.
     private function drawScrollbar(dc as Dc, total as Number) as Void {
-        if (total <= VISIBLE_ROWS) {
+        if (_maxFirst == 0) {
             return;
         }
         var cx = dc.getWidth() / 2;
         var cy = dc.getHeight() / 2;
         var radius = cx - SCROLLBAR_INSET;
         var span = 2 * SCROLLBAR_HALF_ARC;
+        var shown = total - _first < VISIBLE_ROWS ? total - _first : VISIBLE_ROWS;
         var start = SCROLLBAR_HALF_ARC - span * _first / total;
         dc.setPenWidth(SCROLLBAR_WIDTH);
         dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, SCROLLBAR_HALF_ARC, -SCROLLBAR_HALF_ARC);
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, start, start - span * VISIBLE_ROWS / total);
+        dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, start, start - span * shown / total);
         dc.setPenWidth(1);
     }
 
