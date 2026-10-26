@@ -2,3 +2,5 @@
 *.png binary
 # Vendored files stay byte-identical, or their SRI hashes break.
 worker/public/vendor/** -text
+# Generated lockfile: collapsed in GitHub diffs and left out of language stats.
+worker/package-lock.json linguist-generated=true -diff
