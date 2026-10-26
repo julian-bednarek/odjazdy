@@ -2,8 +2,9 @@
   "name": "train-status",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
-  // Create with: npx wrangler kv namespace create TS_KV  — then paste the id here.
-  "kv_namespaces": [{ "binding": "TS_KV", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }]
+  // Created by the first `wrangler deploy`. Wrangler then writes the id back here;
+  // keeping it is optional, later deploys and `wrangler kv --binding` find it either way.
+  "kv_namespaces": [{ "binding": "TS_KV" }]
   // PLK_API_KEY is a secret: npx wrangler secret put PLK_API_KEY
   // Without it the worker serves synthetic demo departures.
 }

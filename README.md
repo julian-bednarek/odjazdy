@@ -25,10 +25,10 @@ Kod: licencja MIT ([LICENSE](LICENSE)). Dane: PKP Polskie Linie Kolejowe S.A., n
    npm install
    npm test
    npx wrangler login
-   npx wrangler kv namespace create TS_KV   # wklej id do wrangler.jsonc
-   npx wrangler deploy
+   npx wrangler deploy                      # za pierwszym razem tworzy też KV
    npx wrangler secret put PLK_API_KEY      # gdy przyjdzie klucz
    ```
+   Deploy dopisuje id KV do `wrangler.jsonc`. Można je zostawić albo odrzucić (`git checkout wrangler.jsonc`) – kolejne deploye i `npm run register` znajdą KV po bindingu.
 3. **Zegarek:** SDK i symulator na Windowsie (SDK Manager + urządzenie fr165), build z WSL Windowsową Javą:
    ```sh
    watch/ciq.sh        # build → watch/bin/train-status.prg
