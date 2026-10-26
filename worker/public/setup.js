@@ -1,4 +1,4 @@
-"use strict";
+import { has, lang, t, translatePage } from "./i18n.js";
 
 const MAX_RESULTS = 8;
 const RADIUS_MIN_M = 200;
@@ -11,22 +11,6 @@ const POLAND = { center: [52.07, 19.48], zoom: 6 };
 const ZONE_ZOOM = 13;
 const TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-
-const Messages = {
-  unauthorized: "Link wygasł albo został już użyty. Wyślij nowy z zegarka: przytrzymaj UP.",
-  password: "Złe hasło.",
-  closed: "Parowanie nowych zegarków jest wyłączone: ustaw w Workerze SETUP_PASSWORD (min. 20 znaków).",
-  upstream: "PLK nie odpowiada, lista stacji jest niedostępna. Spróbuj za chwilę.",
-  bad_request: "Każdy profil potrzebuje nazwy, strefy i co najmniej jednej stacji skąd i dokąd.",
-  network: "Brak połączenia z Workerem.",
-  failed: "Coś poszło nie tak.",
-  saved: "Zapisano. Zegarek pobierze profile w ciągu minuty.",
-  unsaved: "Zmiany czekają na zapis.",
-  unpaired: "Zegarek odłączony. Żeby sparować go ponownie, użyj zegarka.",
-  noLocation: "Brak dostępu do lokalizacji.",
-  noZone: "Dotknij mapy, żeby ustawić strefę.",
-  noStations: "Wybierz co najmniej jedną stację skąd i dokąd.",
-};
 
 const $ = (selector, root = document) => root.querySelector(selector);
 
@@ -69,7 +53,7 @@ async function api(method, path, body) {
   }
 }
 
-const fail = ({ data }) => show(Messages[data.error] ?? Messages.failed, true);
+const fail = ({ data }) => show(t(has(data.error) ? data.error : "failed"), true);
 
 // Case- and accent-insensitive; "ł" has no decomposition, so it is mapped by hand.
 const fold = (text) => text.toLowerCase().replace(/ł/g, "l").normalize("NFD").replace(/\p{M}/gu, "");
@@ -89,7 +73,7 @@ const stationName = (id) => state.stations.get(id) ?? `#${id}`;
 const stationNames = (ids) => ids.map(stationName).join(", ");
 
 function formatRadius(m) {
-  return m < 1000 ? `${m} m` : `${(m / 1000).toLocaleString("pl-PL", { maximumFractionDigits: 1 })} km`;
+  return m < 1000 ? `${m} m` : `${(m / 1000).toLocaleString(lang, { maximumFractionDigits: 1 })} km`;
 }
 
 // The slider is logarithmic, so 200 m and 30 km are both easy to hit.
@@ -105,12 +89,12 @@ function renderList() {
     main.append(
       el("strong", "", profile.name),
       el("span", "", `${stationNames(profile.from)} → ${stationNames(profile.to)}`),
-      el("span", "muted", `strefa ${formatRadius(profile.r)}`),
+      el("span", "muted", t("zoneRadius", { radius: formatRadius(profile.r) })),
     );
     const up = button("↑", "icon", () => move(i, -1));
     const down = button("↓", "icon", () => move(i, 1));
-    up.ariaLabel = "Wyżej";
-    down.ariaLabel = "Niżej";
+    up.ariaLabel = t("moveUp");
+    down.ariaLabel = t("moveDown");
     up.disabled = i === 0;
     down.disabled = i === state.profiles.length - 1;
     item.append(main, up, down);
@@ -130,7 +114,7 @@ function move(i, step) {
 
 function changed() {
   renderList();
-  show(Messages.unsaved);
+  show(t("unsaved"));
 }
 
 function ensureMap() {
@@ -166,12 +150,15 @@ function renderPicker(picker) {
       ids.splice(ids.indexOf(id), 1);
       renderPicker(picker);
     });
-    remove.ariaLabel = `Usuń ${stationName(id)}`;
+    remove.ariaLabel = t("removeStation", { name: stationName(id) });
     chip.append(remove);
     return chip;
   });
   $(".chips", picker).replaceChildren(...chips);
-  $("input", picker).disabled = ids.length >= Number(picker.dataset.max);
+  const input = $("input", picker);
+  const max = Number(picker.dataset.max);
+  input.disabled = ids.length >= max;
+  input.placeholder = input.disabled ? t("stationLimit", { max }) : t("searchStations");
 }
 
 function renderResults(picker) {
@@ -230,7 +217,7 @@ function closeEditor() {
 function commitDraft(event) {
   event.preventDefault();
   const draft = { ...state.draft, name: $("#name").value.trim() };
-  const problem = draft.lat === null ? Messages.noZone : !draft.from.length || !draft.to.length ? Messages.noStations : "";
+  const problem = draft.lat === null ? t("noZone") : !draft.from.length || !draft.to.length ? t("noStations") : "";
   if (problem) {
     $("#editor-error").textContent = problem;
     return;
@@ -253,7 +240,7 @@ function locate() {
       setCenter(coords.latitude, coords.longitude);
       map.setView([coords.latitude, coords.longitude], ZONE_ZOOM);
     },
-    () => ($("#editor-error").textContent = Messages.noLocation),
+    () => ($("#editor-error").textContent = t("noLocation")),
   );
 }
 
@@ -266,15 +253,15 @@ async function save(event) {
   state.registered = true;
   input.value = "";
   renderList();
-  show(Messages.saved);
+  show(t("saved"));
 }
 
 async function unpair() {
-  if (!confirm("Odłączyć zegarek? Worker usunie wszystkie jego profile.")) return;
+  if (!confirm(t("confirmUnpair"))) return;
   const result = await api("DELETE", "/api/config");
   if (!result.ok) return fail(result);
   $("#list").hidden = true;
-  show(Messages.unpaired);
+  show(t("unpaired"));
 }
 
 function bindEvents() {
@@ -295,6 +282,7 @@ function bindEvents() {
 }
 
 async function start() {
+  translatePage();
   bindEvents();
   const [config, stations] = await Promise.all([api("GET", "/api/config"), api("GET", "/api/stations")]);
   if (!config.ok) return fail(config);

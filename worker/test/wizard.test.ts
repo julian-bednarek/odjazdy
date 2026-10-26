@@ -65,10 +65,9 @@ describe("pairing a new watch", () => {
     expect(again.headers.get("Set-Cookie")).toBeNull();
   });
 
-  it.each(["cross-site", "same-site"])("refuses a link followed from a %s page", async (site) => {
+  it("opens the watch's link although Garmin Connect makes it look cross-site", async () => {
     const { code } = (await pair({ secret: SECRET })).body;
-    expect((await open(code, { "Sec-Fetch-Site": site })).headers.get("Set-Cookie")).toBeNull();
-    expect((await open(code, { "Sec-Fetch-Site": "none" })).headers.get("Set-Cookie")).toMatch(/^__Host-session=/);
+    expect((await open(code, { "Sec-Fetch-Site": "cross-site" })).headers.get("Set-Cookie")).toMatch(/^__Host-session=/);
   });
 
   it("ends the session after five wrong passwords", async () => {

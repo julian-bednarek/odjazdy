@@ -12,8 +12,6 @@ const MIN_PASSWORD_LENGTH = 20;
 const PAIRING_CODE = /^[0-9a-f]{32}$/;
 const SESSION_COOKIE = /(?:^|;\s*)__Host-session=([0-9a-f]{64})(?:;|$)/;
 const SETUP_PAGE = "/setup";
-// A link planted on a web page would log the phone into a stranger's pairing; the watch's own link arrives as "none".
-const FOREIGN_SITES = new Set(["cross-site", "same-site"]);
 
 type Authed = { token: string; session: Session };
 type AuthedHandler = (req: Request, env: Env, auth: Authed) => Promise<Response>;
@@ -32,9 +30,10 @@ function redirectToSetup(cookie?: string): Response {
 
 // The watch's link works once and leaves only an HttpOnly cookie behind, so the
 // address bar, the history and the page's scripts never hold a usable credential.
+// Sec-Fetch-Site can't vet it: Garmin Connect opens it as "cross-site", just like a planted link.
 export async function handleOpen(req: Request, env: Env): Promise<Response> {
   const code = new URL(req.url).searchParams.get("c") ?? "";
-  if (!PAIRING_CODE.test(code) || FOREIGN_SITES.has(req.headers.get("Sec-Fetch-Site") ?? "")) return redirectToSetup();
+  if (!PAIRING_CODE.test(code)) return redirectToSetup();
   const pairing = await env.TS_KV.get<Pairing>(Keys.pairing(code), "json");
   if (!pairing) return redirectToSetup();
 

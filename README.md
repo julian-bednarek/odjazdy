@@ -14,6 +14,8 @@ zegarek ──(Garmin Connect, makeWebRequest)──▶ Cloudflare Worker ──
 
 Języki zegarka: angielski (bazowy) i polski – wybierane według ustawień zegarka, teksty w `watch/resources*/strings/strings.xml`.
 
+Języki wizarda: angielski (bazowy) i polski – wybierane według języka przeglądarki (`/setup?lang=en` wymusza język), teksty w `worker/public/i18n/`. Nowy język to nowy plik w `i18n/` i wpis w `worker/public/i18n.js`. Test `worker/test/i18n.test.ts` sprawdza, czy ma wszystkie klucze i te same zmienne `{…}` co angielski.
+
 Kod: licencja MIT ([LICENSE](LICENSE)). Wyjątek: Leaflet 1.9.4 w `worker/public/vendor/leaflet/` (BSD-2-Clause, [LICENSE](worker/public/vendor/leaflet/LICENSE)), trzymany lokalnie, żeby wizard nie ładował skryptów z CDN-u. Dane: PKP Polskie Linie Kolejowe S.A., na warunkach PLK Open Data.
 
 ## Setup
@@ -85,7 +87,7 @@ Wszystkie `/api/*` wymagają cookie sesji. Błędy: `unauthorized` (brak sesji),
   - id KV.
 
   Bezpieczeństwo opiera się na sekrecie zegarka i haśle, nie na tajności URL-a.
-- **Link z zegarka** działa raz i najwyżej 10 min, więc z historii przeglądarki nic się nie odzyska. Worker odrzuca go, gdy przeglądarka zgłasza przejście z innej strony (`Sec-Fetch-Site: cross-site`), więc nikt nie wciśnie Ci linku do swojego parowania. Linki z komunikatorów przychodzą jak z zegarka, więc otwieraj tylko powiadomienie z Garmin Connect. Token sesji siedzi w cookie `HttpOnly`, poza zasięgiem JS-a i URL-a.
+- **Link z zegarka** działa raz i najwyżej 10 min, więc z historii przeglądarki nic się nie odzyska. Worker nie odróżni go od linku podrzuconego przez kogoś obcego, bo Garmin Connect otwiera go w przeglądarce jako przejście z innej strony. Dlatego otwieraj tylko powiadomienie z Garmin Connect, zaraz po START albo UP na zegarku. Token sesji siedzi w cookie `HttpOnly`, poza zasięgiem JS-a i URL-a.
 - **Hasło** chroni tylko przed parowaniem obcych zegarków, które zużywałyby Twój limit PLK. Twoich profili nie odsłania. Limit 5 prób dotyczy jednej sesji, a nową sesję może otworzyć każdy, więc przed zgadywaniem chroni długość hasła. Zmiana: ponowne `npx wrangler secret put SETUP_PASSWORD`.
 - **Unieważnienie zegarka:** w wizardzie „Odłącz zegarek” (albo `npx wrangler kv key list --binding TS_KV --remote --prefix cfg:`, potem `kv key delete`), a potem reinstalacja apki, która tworzy nowy sekret.
 - KV trzyma sekrety i współrzędne stref jawnym tekstem, więc włącz 2FA na koncie Cloudflare.
